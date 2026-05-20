@@ -1,128 +1,169 @@
 # User Account Management System
 
-A menu-driven Java backend application for user registration, login, profile management, and admin operations. Built with **Core Java**, **JDBC**, **MySQL**, and **OOP** principles.
+User registration, login, profile CRUD, admin listing, and password validation.
 
-## Features
+**Two versions in one project:**
 
-| # | Feature | Description |
-|---|---------|-------------|
-| 1 | User Registration | Signup with validation |
-| 2 | User Login | Email/password authentication |
-| 3 | Update Profile | Change name, email, password |
-| 4 | Delete User | Remove user by ID |
-| 5 | View All Users | Admin listing |
-| 6 | Password Validation | Strength rules enforced |
+| Version | Stack | How to run |
+|---------|-------|------------|
+| **Spring Boot (main)** | Spring Boot 3, REST API, JPA, MySQL | `mvn spring-boot:run` |
+| **Legacy console** | Core Java, JDBC, MySQL | `legacy-console\run-legacy.bat` |
 
-## Project Structure
+---
 
-```
-UserManagementSystem/
-├── src/
-│   ├── Main.java          # Menu-driven console UI
-│   ├── User.java          # Model (entity)
-│   ├── UserDAO.java       # JDBC data access
-│   ├── DBConnection.java  # MySQL connection
-│   └── UserService.java   # Business logic & validation
-├── sql/
-│   └── schema.sql         # Database setup script
-└── README.md
-```
+## Spring Boot REST API (recommended)
 
-## Architecture (OOP Layers)
+### Architecture
 
 ```
-Main (Controller/UI)
+UserController (REST)
     ↓
-UserService (Business Logic)
+UserService (business logic + validation)
     ↓
-UserDAO (Data Access - JDBC)
+UserRepository (Spring Data JPA)
     ↓
-DBConnection → MySQL
+MySQL (users table)
 ```
 
-## Prerequisites
+### Prerequisites
 
-- **JDK 11+** (or JDK 8+)
-- **MySQL 8.x** running locally
-- **MySQL Connector/J** (`mysql-connector-j-8.x.x.jar`)
+- **JDK 17+**
+- **Maven 3.8+**
+- **MySQL 8.x**
 
-## Database Setup
-
-1. Start MySQL server.
-2. Run the schema script:
+### Database setup
 
 ```bash
 mysql -u root -p < sql/schema.sql
 ```
 
-Or execute `sql/schema.sql` in MySQL Workbench.
+### Configuration
 
-## Configuration
+Edit `src/main/resources/application.properties`:
 
-Edit `src/DBConnection.java` and set your credentials:
-
-```java
-private static final String USER = "root";
-private static final String PASSWORD = "your_password";
+```properties
+spring.datasource.username=root
+spring.datasource.password=your_password
 ```
 
-## Compile & Run
-
-### Windows (PowerShell)
+### Run
 
 ```powershell
 cd UserManagementSystem
-
-# Download connector if needed:
-# https://dev.mysql.com/downloads/connector/j/
-
-javac -cp ".;lib\mysql-connector-j-8.3.0.jar" -d out src\*.java
-java -cp "out;lib\mysql-connector-j-8.3.0.jar" Main
+mvn spring-boot:run
 ```
 
-### Linux / macOS
+Or double-click `run.bat`.
+
+Server starts at: **http://localhost:8080**
+
+### REST endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/users/register` | Signup |
+| `POST` | `/api/users/login` | Login |
+| `PUT` | `/api/users/{id}` | Update profile |
+| `DELETE` | `/api/users/{id}` | Delete user |
+| `GET` | `/api/users` | List all users (admin) |
+| `POST` | `/api/users/validate-password` | Password strength check |
+
+### Example requests (curl / Postman)
+
+**Register**
 
 ```bash
-cd UserManagementSystem
-javac -cp ".:lib/mysql-connector-j-8.3.0.jar" -d out src/*.java
-java -cp "out:lib/mysql-connector-j-8.3.0.jar" Main
+curl -X POST http://localhost:8080/api/users/register ^
+  -H "Content-Type: application/json" ^
+  -d "{\"name\":\"John Doe\",\"email\":\"john@example.com\",\"password\":\"Secure@123\"}"
 ```
 
-> Place `mysql-connector-j-*.jar` in a `lib/` folder, or use your IDE to add it to the classpath.
+**Login**
 
-## Password Rules
+```bash
+curl -X POST http://localhost:8080/api/users/login ^
+  -H "Content-Type: application/json" ^
+  -d "{\"email\":\"john@example.com\",\"password\":\"Secure@123\"}"
+```
 
-Passwords must:
+**Update user** (id = 1)
 
-- Be at least **8 characters**
-- Contain **uppercase** and **lowercase** letters
-- Contain at least **one digit**
-- Contain at least **one special character**: `@#$%^&+=!`
+```bash
+curl -X PUT http://localhost:8080/api/users/1 ^
+  -H "Content-Type: application/json" ^
+  -d "{\"name\":\"John Updated\",\"email\":\"john.new@example.com\",\"password\":\"\"}"
+```
 
-**Example valid password:** `Secure@123`
+**Delete user**
 
-## Sample Usage
+```bash
+curl -X DELETE http://localhost:8080/api/users/1
+```
 
-1. **Register** – Menu option `1`, enter name, email, password.
-2. **Login** – Menu option `2`, use registered credentials.
-3. **Update** – Menu option `3`, provide user ID and new details.
-4. **Delete** – Menu option `4`, confirm with `yes`.
-5. **Admin list** – Menu option `5`, view all users (passwords not shown in list).
+**Get all users**
 
-## Design Highlights
+```bash
+curl http://localhost:8080/api/users
+```
 
-- **PreparedStatement** – All queries use parameterized statements (SQL injection safe).
-- **Exception handling** – SQLException and validation errors handled in `Main`.
-- **Separation of concerns** – Model, DAO, Service, and UI are separate classes.
-- **Validation** – Centralized in `UserService`.
+**Validate password**
 
-## Optional: Spring Boot Upgrade
+```bash
+curl -X POST http://localhost:8080/api/users/validate-password ^
+  -H "Content-Type: application/json" ^
+  -d "{\"password\":\"Secure@123\"}"
+```
 
-This project uses plain Java + JDBC. To migrate to Spring Boot later:
+### Password rules
 
-- Replace `Main` with REST `@RestController` endpoints
-- Use `spring-boot-starter-data-jpa` or keep JDBC with `JdbcTemplate`
-- Add `application.properties` for datasource config
+- Minimum **8** characters
+- At least one **uppercase**, **lowercase**, **digit**, and **special** (`@#$%^&+=!`)
+- Example: `Secure@123`
+
+---
+
+## Legacy console app (JDBC)
+
+Original menu-driven app preserved in `legacy-console/`:
+
+- `User.java`, `UserDAO.java`, `DBConnection.java`, `UserService.java`, `Main.java`
+
+Run:
+
+```powershell
+legacy-console\run-legacy.bat
+```
+
+Update MySQL credentials in `legacy-console/DBConnection.java`.
+
+---
+
+## Project structure
+
+```
+UserManagementSystem/
+├── pom.xml                          # Maven / Spring Boot
+├── src/main/java/com/usermanagement/
+│   ├── UserManagementApplication.java
+│   ├── controller/UserController.java
+│   ├── service/UserService.java
+│   ├── repository/UserRepository.java
+│   ├── entity/User.java
+│   ├── dto/                         # Request/response objects
+│   └── exception/                   # Global error handling
+├── src/main/resources/
+│   └── application.properties
+├── legacy-console/                  # Original JDBC + menu app
+├── sql/schema.sql
+└── README.md
+```
+
+## Build JAR (optional)
+
+```bash
+mvn clean package
+java -jar target/user-management-system-1.0.0.jar
+```
 
 ## License
 
